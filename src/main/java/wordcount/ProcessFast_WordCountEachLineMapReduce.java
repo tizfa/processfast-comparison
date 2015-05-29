@@ -23,19 +23,17 @@ import it.cnr.isti.hlt.processfast.core.TaskContext;
 import it.cnr.isti.hlt.processfast.data.PartitionableDataset;
 import it.cnr.isti.hlt.processfast.data.RamDictionary;
 import it.cnr.isti.hlt.processfast.data.RecursiveFileLineIteratorProvider;
-import it.cnr.isti.hlt.processfast.utils.Pair;
 import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.regex.Pattern;
 
 
-class ProcessFast_WordCountEachLine {
+class ProcessFast_WordCountEachLineMapReduce {
     private static Pattern pattern = Pattern.compile("([\\s]+)|([\\:\\.\\,\\;\"\\<\\>\\[\\]\\{\\}\\\\/'\\\\&\\#\\*\\(\\)\\=\\?\\^\\!\\|])");
 
 
@@ -44,29 +42,42 @@ class ProcessFast_WordCountEachLine {
         runtime.run(new RamDictionary(), (TaskContext tc) -> {
 
             PartitionableDataset<String> pd = tc.createPartitionableDataset(new RecursiveFileLineIteratorProvider(inputDir, ""));
-            List<Pair<String, Integer>> mw = pd.withPartitionSize(50000)
-                    .mapPairFlat((tdc, line) -> {
-                        ArrayList<Pair<String, Integer>> values = new ArrayList<Pair<String, Integer>>();
-                        String[] a = pattern.split(line);
+            HashMap<String, Integer> mw = pd.withPartitionSize(20000)
+                    .map((tdc, line) -> {
                         HashMap<String, Integer> map = new HashMap<String, Integer>();
+                        String[] a = pattern.split(line);
                         for (int i = 0; i < a.length; i++) {
-                            String word = a[i];
-                            if (word.isEmpty())
+                            String w = a[i];
+                            if (w.isEmpty())
                                 continue;
-                            String w = word.toLowerCase();
-                            values.add(new Pair<>(w, 1));
+                            w = w.toLowerCase();
+                            if (map.containsKey(w))
+                                map.put(w, map.get(w) + 1);
+                            else
+                                map.put(w, 1);
                         }
-                        return values.iterator();
+                        return map;
                     })
-                    .reduceByKey((tdc, val1, val2) -> {
-                        return val1 + val2;
-                    }).collect();
+                    .reduce((tdc, map1, map2) -> {
+                        Iterator<String> keys = map2.keySet().iterator();
+                        while (keys.hasNext()) {
+                            String k = keys.next();
+                            int v = map2.get(k);
+                            if (map1.containsKey(k))
+                                map1.put(k, map1.get(k) + v);
+                            else
+                                map1.put(k, v);
+                        }
+                        return map1;
+                    });
 
             // Write results.
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < mw.size(); i++) {
-                Pair<String, Integer> val = mw.get(i);
-                sb.append("Word: " + val.getV1() + " Occurrences: " + val.getV2() + "\n");
+            Iterator<String> keys = mw.keySet().iterator();
+            while (keys.hasNext()) {
+                String k = keys.next();
+                int v = mw.get(k);
+                sb.append("Word: " + k + " Occurrences: " + v + "\n");
             }
             writeTextFile(outputDir + "\\results.txt", sb.toString());
         });
@@ -88,7 +99,7 @@ class ProcessFast_WordCountEachLine {
 
     public static void main(String[] args) {
         if (args.length != 3)
-            throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountEachLine.class.getName() + " <inputDir> <outputDir> <numCores>");
+            throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountEachLineMapReduce.class.getName() + " <inputDir> <outputDir> <numCores>");
         long startTime = System.currentTimeMillis();
         MTRuntime runtime = new MTRuntime();
         runtime.setNumThreadsForDataParallelism(Integer.parseInt(args[2]));

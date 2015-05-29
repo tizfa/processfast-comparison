@@ -23,7 +23,7 @@ import it.cnr.isti.hlt.processfast.core.ProcessfastRuntime;
 import it.cnr.isti.hlt.processfast.core.TaskContext;
 import it.cnr.isti.hlt.processfast.core.TaskSet;
 import it.cnr.isti.hlt.processfast.data.RecursiveFileLineIteratorProvider;
-import it.cnr.isti.hlt.processfast_gpars.core.GParsRuntime;
+import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
 
 import java.io.*;
 import java.util.*;
@@ -69,7 +69,7 @@ class ProcessFast_WordCountLineStreaming {
             Pattern pattern = Pattern.compile("([\\s]+)|([\\:\\.\\,\\;\"\\<\\>\\[\\]\\{\\}\\\\/'\\\\&\\#\\*\\(\\)\\=\\?\\^\\!\\|])");
             ConnectorReader dist = tc.getConnectorManager().getConnectorReader("DISTRIBUTOR");
             ConnectorWriter coll = tc.getConnectorManager().getConnectorWriter("COLLECTOR");
-            HashMap<String, Integer> mapWords = new HashMap<String, Integer>(1000000);
+            HashMap<String, Integer> mapWords = new HashMap<String, Integer>();
             int tickLastSend = 0;
             while (true) {
                 ConnectorMessage cm = dist.getValue();
@@ -92,7 +92,7 @@ class ProcessFast_WordCountLineStreaming {
                 tickLastSend++;
                 if (tickLastSend >= 2000) {
                     coll.putValue(mapWords);
-                    mapWords = new HashMap<String, Integer>(1000000);
+                    mapWords = new HashMap<String, Integer>();
                     tickLastSend = 0;
                 }
             }
@@ -174,7 +174,7 @@ class ProcessFast_WordCountLineStreaming {
         if (args.length != 4)
             throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountLineStreaming.class.getName() + " <inputDir> <outputDir> <numCores> <maxFilesToRead>");
 
-        GParsRuntime runtime = new GParsRuntime();
+        MTRuntime runtime = new MTRuntime();
         TaskSet ts = createMainTasksSet(runtime, Integer.parseInt(args[2]), args[0], args[1], Integer.parseInt(args[3]));
         runtime.run(ts);
     }

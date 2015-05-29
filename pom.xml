@@ -238,7 +238,7 @@
         </dependency>
         <dependency>
             <groupId>it.cnr.isti.hlt</groupId>
-            <artifactId>processfast-gpars</artifactId>
+            <artifactId>processfast-mt</artifactId>
             <version>0.9-SNAPSHOT</version>
         </dependency>
 

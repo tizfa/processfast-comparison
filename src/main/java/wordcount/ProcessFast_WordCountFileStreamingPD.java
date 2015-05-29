@@ -24,9 +24,8 @@ import it.cnr.isti.hlt.processfast.core.TaskContext;
 import it.cnr.isti.hlt.processfast.core.TaskSet;
 import it.cnr.isti.hlt.processfast.data.CollectionDataSourceIteratorProvider;
 import it.cnr.isti.hlt.processfast.data.PartitionableDataset;
-import it.cnr.isti.hlt.processfast.data.RecursiveFileLineIteratorProvider;
 import it.cnr.isti.hlt.processfast.utils.Pair;
-import it.cnr.isti.hlt.processfast_gpars.core.GParsRuntime;
+import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -195,7 +194,7 @@ class ProcessFast_WordCountFileStreamingPD {
             throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountFileStreamingPD.class.getName() + " <inputDir> <outputDir> <numCores> <maxFilesToRead>");
 
         long startTime = System.currentTimeMillis();
-        GParsRuntime runtime = new GParsRuntime();
+        MTRuntime runtime = new MTRuntime();
         runtime.setNumThreadsForDataParallelism(Integer.parseInt(args[2]));
         TaskSet ts = createMainTasksSet(runtime, Integer.parseInt(args[2]), args[0], args[1], Integer.parseInt(args[3]));
         runtime.run(ts);

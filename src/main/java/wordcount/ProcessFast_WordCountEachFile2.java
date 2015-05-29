@@ -22,16 +22,13 @@ import it.cnr.isti.hlt.processfast.core.ProcessfastRuntime;
 import it.cnr.isti.hlt.processfast.core.TaskContext;
 import it.cnr.isti.hlt.processfast.core.TaskDataContext;
 import it.cnr.isti.hlt.processfast.data.CollectionDataSourceIteratorProvider;
-import it.cnr.isti.hlt.processfast.data.PairPartitionableDataset;
 import it.cnr.isti.hlt.processfast.data.PartitionableDataset;
 import it.cnr.isti.hlt.processfast.data.RamDictionary;
 import it.cnr.isti.hlt.processfast.utils.Pair;
-import it.cnr.isti.hlt.processfast_gpars.core.GParsRuntime;
+import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -123,7 +120,7 @@ class ProcessFast_WordCountEachFile2 {
         if (args.length != 3)
             throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountEachFile2.class.getName() + " <inputDir> <outputDir> <numCores>");
         long startTime = System.currentTimeMillis();
-        GParsRuntime runtime = new GParsRuntime();
+        MTRuntime runtime = new MTRuntime();
         runtime.setNumThreadsForDataParallelism(Integer.parseInt(args[2]));
         runProgram(runtime, args[0], args[1]);
         long endTime = System.currentTimeMillis();

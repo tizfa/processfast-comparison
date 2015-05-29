@@ -14,7 +14,7 @@
     <orderEntry type="library" name="Maven: it.cnr.isti.hlt:processfast-api:0.9-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.7" level="project" />
     <orderEntry type="library" name="Maven: commons-io:commons-io:2.4" level="project" />
-    <orderEntry type="library" name="Maven: it.cnr.isti.hlt:processfast-gpars:0.9-SNAPSHOT" level="project" />
+    <orderEntry type="module" module-name="processfast-mt" />
     <orderEntry type="library" name="Maven: org.codehaus.groovy:groovy-all:2.4.3" level="project" />
     <orderEntry type="library" name="Maven: org.codehaus.gpars:gpars:1.2.1" level="project" />
     <orderEntry type="library" name="Maven: org.multiverse:multiverse-core:0.7.0" level="project" />

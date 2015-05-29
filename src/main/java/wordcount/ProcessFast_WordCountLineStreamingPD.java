@@ -26,7 +26,7 @@ import it.cnr.isti.hlt.processfast.data.CollectionDataSourceIteratorProvider;
 import it.cnr.isti.hlt.processfast.data.PartitionableDataset;
 import it.cnr.isti.hlt.processfast.data.RecursiveFileLineIteratorProvider;
 import it.cnr.isti.hlt.processfast.utils.Pair;
-import it.cnr.isti.hlt.processfast_gpars.core.GParsRuntime;
+import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -75,7 +75,7 @@ class ProcessFast_WordCountLineStreamingPD {
         ts.task((TaskContext tc) -> {
             Pattern pattern = Pattern.compile("([\\s]+)|([\\:\\.\\,\\;\"\\<\\>\\[\\]\\{\\}\\\\/'\\\\&\\#\\*\\(\\)\\=\\?\\^\\!\\|])");
             ConnectorReader dist = tc.getConnectorManager().getConnectorReader("DISTRIBUTOR");
-            int maxLinesBuffered = 5000;
+            int maxLinesBuffered = 50000;
             ConnectorMessage cm = null;
             ArrayList<String> lines = new ArrayList<String>();
             HashMap<String, Integer> mapWords = new HashMap<String, Integer>();
@@ -94,6 +94,7 @@ class ProcessFast_WordCountLineStreamingPD {
                         .mapPairFlat((tdc, line) -> {
                             ArrayList<Pair<String, Integer>> values = new ArrayList<Pair<String, Integer>>();
                             String[] a = pattern.split(line.getV2());
+                            HashMap<String, Integer> map = new HashMap<String, Integer>();
                             for (int i = 0; i < a.length; i++) {
                                 String word = a[i];
                                 if (word.isEmpty())
@@ -142,9 +143,12 @@ class ProcessFast_WordCountLineStreamingPD {
         if (args.length != 4)
             throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountLineStreamingPD.class.getName() + " <inputDir> <outputDir> <numCores> <maxFilesToRead>");
 
-        GParsRuntime runtime = new GParsRuntime();
+        long startTime = System.currentTimeMillis();
+        MTRuntime runtime = new MTRuntime();
         runtime.setNumThreadsForDataParallelism(Integer.parseInt(args[2]));
         TaskSet ts = createMainTasksSet(runtime, Integer.parseInt(args[2]), args[0], args[1], Integer.parseInt(args[3]));
         runtime.run(ts);
+        long endTime = System.currentTimeMillis();
+        System.out.println("Done! Execution time: " + (endTime - startTime) + " milliseconds.");
     }
 }

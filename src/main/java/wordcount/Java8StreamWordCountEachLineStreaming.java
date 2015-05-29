@@ -18,8 +18,10 @@
 
 package wordcount;
 
+import it.cnr.isti.hlt.processfast.connector.ConnectorMessage;
 import it.cnr.isti.hlt.processfast.data.RecursiveFileLineIteratorProvider;
-import it.cnr.isti.hlt.processfast.utils.Pair;
+import it.cnr.isti.hlt.processfast_mt.connector.MTLoadBalancingQueueConnector;
+import it.cnr.isti.hlt.processfast_mt.connector.MTTaskLoadBalancingQueueConnector;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -27,43 +29,56 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
 /**
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public class Java8StreamWordCountEachLine {
+public class Java8StreamWordCountEachLineStreaming {
     private static Pattern pattern = Pattern.compile("([\\s]+)|([\\:\\.\\,\\;\"\\<\\>\\[\\]\\{\\}\\\\/'\\\\&\\#\\*\\(\\)\\=\\?\\^\\!\\|])");
 
     public static void main(String[] args) {
         if (args.length != 3)
-            throw new IllegalArgumentException("Usage: " + Java8StreamWordCountEachLine.class.getName() + " <inputDir> <outputDir> <numCores>");
+            throw new IllegalArgumentException("Usage: " + Java8StreamWordCountEachLineStreaming.class.getName() + " <inputDir> <outputDir> <numCores>");
 
         long startTime = System.currentTimeMillis();
         RecursiveFileLineIteratorProvider linesProvider = new RecursiveFileLineIteratorProvider(args[0], "");
         Iterator<String> lines = linesProvider.iterator();
         int numLinesToBuffer = 50000;
-        ArrayList<String> linesBuffered = new ArrayList<>();
+
         HashMap<String, Integer> mapRes = new HashMap<>();
         ForkJoinPool forkJoinPool = new ForkJoinPool(Integer.parseInt(args[2]));
-        try {
-            forkJoinPool.submit(() -> {
-                while (true) {
-                    linesBuffered.clear();
-                    while (lines.hasNext() && linesBuffered.size() < numLinesToBuffer)
-                        linesBuffered.add(lines.next());
-                    if (linesBuffered.size() == 0)
-                        break;
+        ExecutorService executorDisk = Executors.newSingleThreadExecutor();
+        final MTLoadBalancingQueueConnector connector = new MTLoadBalancingQueueConnector(numLinesToBuffer * 2);
+        final MTTaskLoadBalancingQueueConnector diskConnector = new MTTaskLoadBalancingQueueConnector(connector);
+        Future diskReader = executorDisk.submit(() -> {
+            while (lines.hasNext()) {
+                String line = lines.next();
+                diskConnector.putValue(line);
+            }
+            diskConnector.signalEndOfStream();
+        });
 
+        while (true) {
+
+            ConnectorMessage cm = null;
+            ArrayList<String> linesBuffered = new ArrayList<>();
+            while ((cm = diskConnector.getValue()) != null && linesBuffered.size() < numLinesToBuffer)
+                linesBuffered.add((String) cm.getPayload());
+            if (linesBuffered.size() == 0)
+                break;
+
+            try {
+                forkJoinPool.submit(() -> {
                     HashMap<String, Integer> partialResults = linesBuffered.parallelStream().filter(line -> {
                         if (line.isEmpty())
                             return false;
                         return !(line.startsWith("<doc") || line.startsWith("</doc"));
                     }).map(line -> {
-
-
                         HashMap<String, Integer> map = new HashMap<String, Integer>();
                         String[] a = pattern.split(line);
                         for (int i = 0; i < a.length; i++) {
@@ -100,24 +115,30 @@ public class Java8StreamWordCountEachLine {
                             mapRes.put(k, v);
 
                     }
-                }
-
-                // Write results.
-                StringBuilder sb = new StringBuilder();
-                Iterator<String> keys = mapRes.keySet().iterator();
-                while (keys.hasNext()) {
-                    String k = keys.next();
-                    int v = mapRes.get(k);
-                    sb.append("Word: " + k + " Occurrences: " + v + "\n");
-                }
-                writeTextFile(args[1] + "\\results.txt", sb.toString());
-
-                long endTime = System.currentTimeMillis();
-                System.out.println("Done! Execution time: " + (endTime - startTime) + " milliseconds.");
-            }).get();
-        } catch (Exception e) {
-            e.printStackTrace();
+                }).get();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+
+        try {
+            diskReader.get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // Write results.
+        StringBuilder sb = new StringBuilder();
+        Iterator<String> keys = mapRes.keySet().iterator();
+        while (keys.hasNext()) {
+            String k = keys.next();
+            int v = mapRes.get(k);
+            sb.append("Word: " + k + " Occurrences: " + v + "\n");
+        }
+        writeTextFile(args[1] + "\\results.txt", sb.toString());
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("Done! Execution time: " + (endTime - startTime) + " milliseconds.");
     }
 
     private static void writeTextFile(String filename, String textToWrite) {

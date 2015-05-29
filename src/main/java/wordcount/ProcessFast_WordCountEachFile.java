@@ -24,7 +24,7 @@ import it.cnr.isti.hlt.processfast.data.CollectionDataSourceIteratorProvider;
 import it.cnr.isti.hlt.processfast.data.PartitionableDataset;
 import it.cnr.isti.hlt.processfast.data.RamDictionary;
 import it.cnr.isti.hlt.processfast.utils.Pair;
-import it.cnr.isti.hlt.processfast_gpars.core.GParsRuntime;
+import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
 
 import java.io.*;
 import java.util.*;
@@ -89,18 +89,16 @@ class ProcessFast_WordCountEachFile {
                         return mapWords;
                     })
                     .reduce((tdc, map1, map2) -> {
-                        HashMap<String, Integer> m = new HashMap<String, Integer>();
-                        m.putAll(map1);
                         Iterator<String> keys = map2.keySet().iterator();
                         while (keys.hasNext()) {
                             String key = keys.next();
                             int value = map2.get(key);
-                            if (m.containsKey(key))
-                                m.put(key, m.get(key) + value);
+                            if (map1.containsKey(key))
+                                map1.put(key, map1.get(key) + value);
                             else
-                                m.put(key, value);
+                                map1.put(key, value);
                         }
-                        return m;
+                        return map1;
                     });
 
             // Write results.
@@ -134,7 +132,7 @@ class ProcessFast_WordCountEachFile {
         if (args.length != 3)
             throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountEachFile.class.getName() + " <inputDir> <outputDir> <numCores>");
         long startTime = System.currentTimeMillis();
-        GParsRuntime runtime = new GParsRuntime();
+        MTRuntime runtime = new MTRuntime();
         runtime.setNumThreadsForDataParallelism(Integer.parseInt(args[2]));
         runProgram(runtime, args[0], args[1]);
         long endTime = System.currentTimeMillis();

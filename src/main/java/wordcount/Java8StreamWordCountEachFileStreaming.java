@@ -18,11 +18,15 @@
 
 package wordcount;
 
+import scala.tools.nsc.Global;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.regex.Pattern;
@@ -71,7 +75,8 @@ public class Java8StreamWordCountEachFileStreaming {
         int numFilesToBuffer = 150;
         ArrayList<String> filesBuffered = new ArrayList<>();
         HashMap<String, Integer> mapRes = new HashMap<>();
-        ForkJoinPool forkJoinPool = new ForkJoinPool(Integer.parseInt(args[2]));
+        final ForkJoinPool forkJoinPool = new ForkJoinPool(Integer.parseInt(args[2]));
+        ExecutorService diskExecutor = Executors.newSingleThreadExecutor();
 
         try {
 
@@ -90,11 +95,14 @@ public class Java8StreamWordCountEachFileStreaming {
                 if (filesBuffered.size() == 0)
                     break;
 
-                ArrayList<String> toAnalyze = new ArrayList<String>();
+                final ArrayList<String> toAnalyze = new ArrayList<String>();
                 toAnalyze.addAll(filesBuffered);
                 work = forkJoinPool.submit(() -> {
 
-                    HashMap<String, Integer> partialResults = toAnalyze.parallelStream().map(filename -> {
+                    System.out.println("Questo lo faccio forse...");
+                    ArrayList<String> streamed = new ArrayList<String>();
+                    streamed.addAll(toAnalyze);
+                    HashMap<String, Integer> partialResults = streamed.parallelStream().map(filename -> {
                         List<String> articles = readArticles(filename);
                         HashMap<String, Integer> mapWords = new HashMap<String, Integer>();
                         for (int idx = 0; idx < articles.size(); idx++) {
@@ -125,6 +133,7 @@ public class Java8StreamWordCountEachFileStreaming {
                         }
                         return map1;
                     }).get();
+                    System.out.println("Questo dopo la get...");
 
                     Iterator<String> keys = partialResults.keySet().iterator();
                     while (keys.hasNext()) {
@@ -136,7 +145,7 @@ public class Java8StreamWordCountEachFileStreaming {
                             mapRes.put(k, v);
 
                     }
-                });
+                }).fork();
 
             }
 
@@ -151,6 +160,7 @@ public class Java8StreamWordCountEachFileStreaming {
             writeTextFile(args[1] + "\\results.txt", sb.toString());
 
         } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         long endTime = System.currentTimeMillis();
@@ -162,7 +172,7 @@ public class Java8StreamWordCountEachFileStreaming {
     private static void writeTextFile(String filename, String textToWrite) {
         try {
             new File(filename).getParentFile().mkdirs();
-            FileWriter writer = new FileWriter(filename, true);
+            FileWriter writer = new FileWriter(filename, false);
             BufferedWriter bufferedWriter = new BufferedWriter(writer);
             bufferedWriter.write(textToWrite);
             bufferedWriter.close();

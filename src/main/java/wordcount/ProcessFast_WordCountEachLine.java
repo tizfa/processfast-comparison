@@ -44,7 +44,7 @@ class ProcessFast_WordCountEachLine {
         runtime.run(new RamDictionary(), (TaskContext tc) -> {
 
             PartitionableDataset<String> pd = tc.createPartitionableDataset(new RecursiveFileLineIteratorProvider(inputDir, ""));
-            List<Pair<String, Integer>> mw = pd.withPartitionSize(50000)
+            List<Pair<String, Integer>> mw = pd.withPartitionSize(10000)
                     .mapPairFlat((tdc, line) -> {
                         ArrayList<Pair<String, Integer>> values = new ArrayList<Pair<String, Integer>>();
                         String[] a = pattern.split(line);

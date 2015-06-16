@@ -244,6 +244,12 @@
         </dependency>
 
         <dependency>
+            <groupId>it.cnr.isti.hlt</groupId>
+            <artifactId>processfast-storage-mapdb</artifactId>
+            <!--<version>0.9-SNAPSHOT</version>-->
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
             <version>2.6.0</version>

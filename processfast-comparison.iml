@@ -19,10 +19,10 @@
     <orderEntry type="library" name="Maven: org.codehaus.gpars:gpars:1.2.1" level="project" />
     <orderEntry type="library" name="Maven: org.multiverse:multiverse-core:0.7.0" level="project" />
     <orderEntry type="library" name="Maven: org.codehaus.jsr166-mirror:jsr166y:1.7.0" level="project" />
-    <orderEntry type="library" name="Maven: it.cnr.isti.hlt:processfast-storage-mapdb:0.9-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-log4j12:1.7.8" level="project" />
     <orderEntry type="library" name="Maven: org.twitter4j:twitter4j-core:4.0.3" level="project" />
     <orderEntry type="library" name="Maven: org.twitter4j:twitter4j-stream:4.0.3" level="project" />
+    <orderEntry type="library" name="Maven: it.cnr.isti.hlt:processfast-storage-mapdb:0.9-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-hdfs:2.6.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:11.0.2" level="project" />
     <orderEntry type="library" name="Maven: org.mortbay.jetty:jetty:6.1.26" level="project" />

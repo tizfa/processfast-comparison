@@ -19,8 +19,6 @@
 
 package wordcount;
 
-import scala.tools.nsc.Global;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;

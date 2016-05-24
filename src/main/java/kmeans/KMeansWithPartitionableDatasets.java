@@ -26,7 +26,10 @@ import it.cnr.isti.hlt.processfast.utils.Pair;
 import it.cnr.isti.hlt.processfast.utils.Triple;
 import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,7 +48,7 @@ public class KMeansWithPartitionableDatasets {
     /**
      * The number of clusters used to divide the input data.
      */
-    private final static int NUM_CLUSTERS = 50;
+    private final static int NUM_CLUSTERS = 10;
 
     /**
      * The number of iterations performed by the algorithm.
@@ -141,6 +144,8 @@ public class KMeansWithPartitionableDatasets {
                         documents,
                         ctx.createPairPartitionableDataset(new CollectionDataSourceIteratorProvider<>(
                                 clustersAssignment)));
+
+                ctx.getLogManager().getLogger("kmeans").info("Performed iteration <" + (i + 1) + ">...");
             }
 
             // Delete tmp clusters centroids.
@@ -149,6 +154,7 @@ public class KMeansWithPartitionableDatasets {
             // Return results using system global dictionary.
             ArrayList<Pair<Integer, Integer>> ret = new ArrayList<>(bestClusters);
             ctx.getTasksSetDataDictionary().put("results", ret);
+            ctx.getLogManager().getLogger("kmeans").info("KMeans computation done!");
         });
 
         runtime.run(ts);
@@ -223,8 +229,9 @@ public class KMeansWithPartitionableDatasets {
     }
 
     private static void createTmpClustersCentroidsStructures(TaskContext ctx,
+
                                                              int numClusters) {
-        Storage storage = ctx.getStorageManager().getStorage(
+        Storage storage = ctx.getStorageManager().createStorage(
                 TMP_STORAGE_NAME);
         for (int i = 0; i < numClusters; i++) {
             storage.createArray(TMP_CLUSTER_ARRAY_PREFIX_NAME + i,
@@ -334,7 +341,8 @@ public class KMeansWithPartitionableDatasets {
             Iterator<DataIterable<FeatInfo>> docs = docsIt.iterator();
             int numDocs = 1;
             while (docs.hasNext()) {
-                Iterator<FeatInfo> doc = docs.next().iterator();
+                DataIterable<FeatInfo> items = docs.next();
+                Iterator<FeatInfo> doc = items.iterator();
                 ce = updateCentroidWithDocument(ce, doc, numDocs);
                 numDocs++;
             }

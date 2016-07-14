@@ -24,7 +24,8 @@ import it.cnr.isti.hlt.processfast.core.TaskSet;
 import it.cnr.isti.hlt.processfast.data.*;
 import it.cnr.isti.hlt.processfast.utils.Pair;
 import it.cnr.isti.hlt.processfast.utils.Triple;
-import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
+import it.cnr.isti.hlt.processfast_mt.core.MTProcessfastRuntime;
+import it.cnr.isti.hlt.processfast_storage_mapdb.MapDBRamStorageManagerProvider;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -98,7 +99,10 @@ public class KMeansWithPartitionableDatasets {
             System.exit(-1);
         }
 
-        MTRuntime runtime = new MTRuntime();
+        MTProcessfastRuntime runtime = new MTProcessfastRuntime();
+        MapDBRamStorageManagerProvider smp = new MapDBRamStorageManagerProvider();
+        smp.setStorageType(MapDBRamStorageManagerProvider.MapDBRamStorageType.FILE_DB, args[1] + ".db");
+        runtime.setStorageManagerProvider(smp);
         runtime.setNumThreadsForDataParallelism(Integer.parseInt(args[2]));
         TaskSet ts = runtime.createTaskSet();
         ts.getDataDictionary().put("inputFile", args[0]);
@@ -133,7 +137,6 @@ public class KMeansWithPartitionableDatasets {
                     break;
 
                 // Reassign documents to clusters.
-                clustersAssignment.clear();
                 for (Pair<Integer, Integer> v : bestClusters) {
                     clustersAssignment.set(v.getV1(), v.getV2());
                 }
@@ -185,8 +188,9 @@ public class KMeansWithPartitionableDatasets {
     private static List<Pair<Integer, Integer>> computeBestClusters(
             PairPartitionableDataset<Integer, DataIterable<FeatInfo>> documents,
             PairPartitionableDataset<Integer, DataIterable<FeatInfo>> centroids) {
+        PairPartitionableDataset<Integer, DataIterable<FeatInfo>> ce = centroids.cache(CacheType.ON_DISK);
         List<Pair<Integer, Integer>> bestClusters = documents
-                .cartesian(centroids)
+                .cartesian(ce)
                 .map((context, v) -> { // Compute similarity between a
                     // document and a cluster.
                     Pair<Integer, DataIterable<FeatInfo>> doc = v.getV1();
@@ -353,9 +357,8 @@ public class KMeansWithPartitionableDatasets {
             // Write final centroid on corresponding array in the output
             // storage.
             ceOut.clear();
-            while (ce.hasNext()) {
-                ceOut.appendValue(ce.next());
-            }
+            ceOut.appendValues(ce, 100000);
+
         }
 
         // Ensure that all updated data is flushed on storage.

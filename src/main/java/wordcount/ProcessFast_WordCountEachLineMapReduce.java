@@ -24,7 +24,7 @@ import it.cnr.isti.hlt.processfast.core.TaskContext;
 import it.cnr.isti.hlt.processfast.data.PartitionableDataset;
 import it.cnr.isti.hlt.processfast.data.RamDictionary;
 import it.cnr.isti.hlt.processfast.data.RecursiveFileLineIteratorProvider;
-import it.cnr.isti.hlt.processfast_mt.core.MTRuntime;
+import it.cnr.isti.hlt.processfast_mt.core.MTProcessfastRuntime;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -102,7 +102,7 @@ class ProcessFast_WordCountEachLineMapReduce {
         if (args.length != 3)
             throw new IllegalArgumentException("Usage: " + ProcessFast_WordCountEachLineMapReduce.class.getName() + " <inputDir> <outputDir> <numCores>");
         long startTime = System.currentTimeMillis();
-        MTRuntime runtime = new MTRuntime();
+        MTProcessfastRuntime runtime = new MTProcessfastRuntime();
         runtime.setNumThreadsForDataParallelism(Integer.parseInt(args[2]));
         runProgram(runtime, args[0], args[1]);
         long endTime = System.currentTimeMillis();
